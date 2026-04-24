@@ -250,12 +250,33 @@ export default function App(){
   const [lastResult,setLastResult]=useState(null);
   const [character,setCharacter]=useState("🤖");
 
-  if(screen==="landing")    return <Landing    onPlay={()=>setScreen("cutscene")}/>;
-  if(screen==="cutscene")   return <Cutscene   onDone={()=>setScreen("modeselect")}/>;
-  if(screen==="modeselect") return <ModeSelect character={character} setCharacter={setCharacter} config={gameConfig} setConfig={setGameConfig} onStart={()=>setScreen("game")} onBack={()=>setScreen("landing")}/>;
-  if(screen==="game")       return <Game       config={gameConfig} character={character} onEnd={r=>{setLastResult(r);setScreen("summary");}} onMenu={()=>setScreen("modeselect")}/>;
-  if(screen==="summary")    return <Summary    result={lastResult} onPlay={()=>setScreen("game")} onMenu={()=>setScreen("modeselect")}/>;
-  return null;
+  let content=null;
+  if(screen==="landing")    content=<Landing    onPlay={()=>setScreen("cutscene")}/>;
+  if(screen==="cutscene")   content=<Cutscene   onDone={()=>setScreen("modeselect")}/>;
+  if(screen==="modeselect") content=<ModeSelect character={character} setCharacter={setCharacter} config={gameConfig} setConfig={setGameConfig} onStart={()=>setScreen("game")} onBack={()=>setScreen("landing")}/>;
+  if(screen==="game")       content=<Game       config={gameConfig} character={character} onEnd={r=>{setLastResult(r);setScreen("summary");}} onMenu={()=>setScreen("modeselect")}/>;
+  if(screen==="summary")    content=<Summary    result={lastResult} onPlay={()=>setScreen("game")} onMenu={()=>setScreen("modeselect")}/>;
+
+  return (
+    <div style={{
+      minHeight:"100vh",
+      background:`repeating-linear-gradient(135deg,#0A0604 0px,#0A0604 20px,#0C0805 20px,#0C0805 40px)`,
+      display:"flex",
+      alignItems:"flex-start",
+      justifyContent:"center",
+    }}>
+      <div style={{
+        width:"100%",
+        maxWidth:780,
+        minHeight:"100vh",
+        boxShadow:`0 0 0 1px #5C3A1E, 0 0 60px rgba(0,0,0,0.8), 8px 0 32px rgba(0,0,0,0.5), -8px 0 32px rgba(0,0,0,0.5)`,
+        position:"relative",
+        overflow:"hidden",
+      }}>
+        {content}
+      </div>
+    </div>
+  );
 }
 
 // ─── LANDING ─────────────────────────────────────────────────────────────────
