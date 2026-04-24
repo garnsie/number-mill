@@ -260,21 +260,13 @@ export default function App(){
   return (
     <div style={{
       minHeight:"100vh",
-      background:`repeating-linear-gradient(135deg,#0A0604 0px,#0A0604 20px,#0C0805 20px,#0C0805 40px)`,
-      display:"flex",
-      alignItems:"flex-start",
-      justifyContent:"center",
+      width:"100%",
+      position:"relative",
+      borderLeft:`3px solid #5C3A1E`,
+      borderRight:`3px solid #5C3A1E`,
+      boxSizing:"border-box",
     }}>
-      <div style={{
-        width:"100%",
-        maxWidth:780,
-        minHeight:"100vh",
-        boxShadow:`0 0 0 1px #5C3A1E, 0 0 60px rgba(0,0,0,0.8), 8px 0 32px rgba(0,0,0,0.5), -8px 0 32px rgba(0,0,0,0.5)`,
-        position:"relative",
-        overflow:"hidden",
-      }}>
-        {content}
-      </div>
+      {content}
     </div>
   );
 }
