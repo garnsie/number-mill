@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Analytics } from "@vercel/analytics/react";
 
 // ─── Design tokens — warm cartoon factory palette ─────────────────────────────
 const T = {
@@ -267,11 +268,12 @@ export default function App(){
       boxSizing:"border-box",
     }}>
       {content}
+      <Analytics />
     </div>
   );
 }
 
-// ─── LANDING ─────────────────────────────────────────────────────────────────
+// ─── LANDING ───────────────────────────────────────────────────────���─────────
 function Landing({onPlay}){
   const [tick,setTick]=useState(0);
   useEffect(()=>{ const t=setInterval(()=>setTick(p=>p+1),50); return ()=>clearInterval(t); },[]);
