@@ -244,6 +244,37 @@ function ForemanReed({emotion="stern",size=1,talking=false}){
 }
 
 // ─── APP SHELL ────────────────────────────────────────────────────────────────
+// ─── FLOATING BUY ME A COFFEE ────────────────────────────────────────────────
+function BmcButton(){
+  const [hidden,setHidden]=useState(()=>sessionStorage.getItem("bmc_off")==="1");
+  if(hidden) return null;
+  return (
+    <div style={{position:"fixed",bottom:16,right:16,zIndex:9999,display:"flex",alignItems:"stretch"}}>
+      <a
+        href="https://buymeacoffee.com/smartmathminds"
+        target="_blank" rel="noopener noreferrer"
+        style={{
+          display:"flex",alignItems:"center",gap:7,
+          background:T.amber,color:T.ink,
+          border:`3px solid ${T.ink}`,borderRight:"none",borderRadius:"8px 0 0 8px",
+          padding:"7px 13px",fontFamily:T.font,fontSize:11,fontWeight:900,
+          textDecoration:"none",letterSpacing:1,
+          boxShadow:`3px 3px 0 ${T.ink}`,
+        }}
+      >☕ BUY ME A COFFEE</a>
+      <button
+        onClick={()=>{sessionStorage.setItem("bmc_off","1");setHidden(true);}}
+        style={{
+          background:T.rust,color:T.cream,
+          border:`3px solid ${T.ink}`,borderLeft:"none",borderRadius:"0 8px 8px 0",
+          padding:"7px 9px",fontFamily:T.font,fontSize:11,fontWeight:900,
+          cursor:"pointer",boxShadow:`3px 3px 0 ${T.ink}`,lineHeight:1,
+        }}
+      >✕</button>
+    </div>
+  );
+}
+
 export default function App(){
   const [screen,setScreen]=useState("landing");
   const [gameConfig,setGameConfig]=useState({diff:"easy",mode:"solo",multiples:[2]});
@@ -267,6 +298,7 @@ export default function App(){
       boxSizing:"border-box",
     }}>
       {content}
+      <BmcButton/>
     </div>
   );
 }
@@ -313,7 +345,7 @@ function Landing({onPlay}){
           background:T.rust,border:`4px solid ${T.ink}`,borderRadius:6,
           boxShadow:`6px 6px 0 ${T.ink}`,marginBottom:20,transform:"rotate(-1deg)",
         }}>
-          <div style={{fontSize:13,letterSpacing:8,color:T.cream,fontWeight:900}}>⚙ EDUCATIONAL GAMES ⚙</div>
+          <div style={{fontSize:13,letterSpacing:8,color:T.cream,fontWeight:900}}>⚙ SMART MATH MINDS ⚙</div>
         </div>
         <div style={{marginBottom:10}}>
           <div style={{fontSize:88,fontWeight:900,lineHeight:0.88,letterSpacing:-2,color:T.amber,
@@ -325,7 +357,7 @@ function Landing({onPlay}){
           display:"inline-block",padding:"8px 24px",
           background:"#2A1C0E",border:`3px solid ${T.border}`,borderRadius:4,
           fontSize:13,color:T.muted,letterSpacing:3,marginBottom:40,fontWeight:700,
-        }}>THE MATH IS THE MECHANIC · GRADES 3–8</div>
+        }}>THE FACTORY NEVER STOPS · CAN YOU KEEP UP?</div>
         <div style={{display:"flex",justifyContent:"center",alignItems:"flex-end",gap:24,marginBottom:32}}>
           <div style={{animation:"bossFloat 2.5s ease-in-out infinite"}}>
             <ForemanReed emotion="stern" size={0.85}/>
