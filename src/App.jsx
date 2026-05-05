@@ -335,7 +335,7 @@ function Landing({onPlay}){
   return (
     <div style={{minHeight:"100vh",background:T.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:T.font,color:T.text,position:"relative",overflow:"hidden"}}>
       <WoodBg/>
-      <div style={{position:"absolute",top:0,left:0,right:0,height:40,background:"#140C04",borderBottom:`4px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 16px"}}>
+      <div style={{position:"absolute",top:0,left:0,right:0,height:40,background:"#140C04",borderBottom:`4px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 16px",zIndex:10}}>
         <a href="https://smartmathminds.com" style={{color:T.muted,fontSize:11,fontWeight:900,textDecoration:"none",letterSpacing:2,fontFamily:T.font,transition:"color 0.15s"}}
           onMouseEnter={e=>e.currentTarget.style.color=T.cream}
           onMouseLeave={e=>e.currentTarget.style.color=T.muted}
