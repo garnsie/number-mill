@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { sb, submitScore, getLeaderboard } from './supabase';
 
 // ─── Design tokens — warm cartoon factory palette ─────────────────────────────
 const T = {
@@ -45,6 +46,17 @@ function getCfg(m){ return MCFG.find(c=>c.multiple===m)||MCFG[0]; }
 function getTimesTable(m){ return Array.from({length:12},(_,i)=>(i+1)*m); }
 function getTodaySeed(){
   const d=new Date(); return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+}
+function getPlayerId(){
+  let id=localStorage.getItem('nm_pid');
+  if(!id){ id=Math.random().toString(36).slice(2)+Date.now().toString(36); localStorage.setItem('nm_pid',id); }
+  return id;
+}
+function getDailyResult(){
+  try{ return JSON.parse(localStorage.getItem(`nm_d_${getTodaySeed()}`)); }catch{ return null; }
+}
+function saveDailyResult(data){
+  localStorage.setItem(`nm_d_${getTodaySeed()}`,JSON.stringify({...data,pid:getPlayerId()}));
 }
 
 // ─── Belt generation ──────────────────────────────────────────────────────────
@@ -281,12 +293,23 @@ export default function App(){
   const [lastResult,setLastResult]=useState(null);
   const [character,setCharacter]=useState("🤖");
 
+  const handleGameEnd=r=>{
+    setLastResult(r);
+    if(gameConfig.mode==="daily"){
+      saveDailyResult({score:r.score,character});
+      setScreen("dailyleaderboard");
+    } else {
+      setScreen("summary");
+    }
+  };
+
   let content=null;
-  if(screen==="landing")    content=<Landing    onPlay={()=>setScreen("cutscene")}/>;
-  if(screen==="cutscene")   content=<Cutscene   onDone={()=>setScreen("modeselect")}/>;
-  if(screen==="modeselect") content=<ModeSelect character={character} setCharacter={setCharacter} config={gameConfig} setConfig={setGameConfig} onStart={()=>setScreen("game")} onBack={()=>setScreen("landing")}/>;
-  if(screen==="game")       content=<Game       config={gameConfig} character={character} onEnd={r=>{setLastResult(r);setScreen("summary");}} onMenu={()=>setScreen("modeselect")}/>;
-  if(screen==="summary")    content=<Summary    result={lastResult} onPlay={()=>setScreen("game")} onMenu={()=>setScreen("modeselect")}/>;
+  if(screen==="landing")          content=<Landing    onPlay={()=>setScreen("cutscene")}/>;
+  if(screen==="cutscene")         content=<Cutscene   onDone={()=>setScreen("modeselect")}/>;
+  if(screen==="modeselect")       content=<ModeSelect character={character} setCharacter={setCharacter} config={gameConfig} setConfig={setGameConfig} onStart={()=>setScreen("game")} onBack={()=>setScreen("landing")} onViewDailyLeaderboard={()=>setScreen("dailyleaderboard")}/>;
+  if(screen==="game")             content=<Game       config={gameConfig} character={character} onEnd={handleGameEnd} onMenu={()=>setScreen("modeselect")}/>;
+  if(screen==="summary")          content=<Summary    result={lastResult} onPlay={()=>setScreen("game")} onMenu={()=>setScreen("modeselect")}/>;
+  if(screen==="dailyleaderboard") content=<DailyLeaderboard character={character} onMenu={()=>setScreen("modeselect")}/>;
 
   return (
     <div style={{
@@ -312,7 +335,12 @@ function Landing({onPlay}){
   return (
     <div style={{minHeight:"100vh",background:T.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:T.font,color:T.text,position:"relative",overflow:"hidden"}}>
       <WoodBg/>
-      <div style={{position:"absolute",top:0,left:0,right:0,height:40,background:"#140C04",borderBottom:`4px solid ${T.border}`}}/>
+      <div style={{position:"absolute",top:0,left:0,right:0,height:40,background:"#140C04",borderBottom:`4px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 16px"}}>
+        <a href="https://smartmathminds.com" style={{color:T.muted,fontSize:11,fontWeight:900,textDecoration:"none",letterSpacing:2,fontFamily:T.font,transition:"color 0.15s"}}
+          onMouseEnter={e=>e.currentTarget.style.color=T.cream}
+          onMouseLeave={e=>e.currentTarget.style.color=T.muted}
+        >← SMART MATH MINDS</a>
+      </div>
       {[...Array(6)].map((_,i)=>(
         <div key={i} style={{position:"absolute",top:8,left:`${8+i*17}%`,display:"flex",flexDirection:"column",alignItems:"center"}}>
           <div style={{width:28,height:24,background:"#3A2010",border:`3px solid ${T.border}`,borderRadius:"4px 4px 0 0"}}/>
@@ -493,7 +521,7 @@ function Cutscene({onDone}){
 }
 
 // ─── MODE SELECT ──────────────────────────────────────────────────────────────
-function ModeSelect({character,setCharacter,config,setConfig,onStart,onBack}){
+function ModeSelect({character,setCharacter,config,setConfig,onStart,onBack,onViewDailyLeaderboard}){
   const [selectedMode,setSelectedMode]=useState(null);
   const [practiceMultiples,setPracticeMultiples]=useState([2]);
   const [practiceDiff,setPracticeDiff]=useState("easy");
@@ -509,8 +537,12 @@ function ModeSelect({character,setCharacter,config,setConfig,onStart,onBack}){
       {/* Nav */}
       <div style={{position:"relative",zIndex:2,display:"flex",alignItems:"center",justifyContent:"space-between",
         padding:"14px 28px",borderBottom:`3px solid ${T.border}`,background:"#140C04"}}>
-        <div style={{fontSize:22,fontWeight:900,color:T.amber,WebkitTextStroke:`1.5px ${T.ink}`,letterSpacing:1}}>
-          NUMBER MILL
+        <div style={{display:"flex",flexDirection:"column",gap:2}}>
+          <a href="https://smartmathminds.com" style={{color:T.muted,fontSize:10,fontWeight:900,textDecoration:"none",letterSpacing:2,fontFamily:T.font,transition:"color 0.15s"}}
+            onMouseEnter={e=>e.currentTarget.style.color=T.cream}
+            onMouseLeave={e=>e.currentTarget.style.color=T.muted}
+          >← SMART MATH MINDS</a>
+          <div style={{fontSize:22,fontWeight:900,color:T.amber,WebkitTextStroke:`1.5px ${T.ink}`,letterSpacing:1}}>NUMBER MILL</div>
         </div>
         <Btn label="← HUB" onClick={onBack} color={T.cream} size="sm" style={{color:T.ink}}/>
       </div>
@@ -632,7 +664,9 @@ function ModeSelect({character,setCharacter,config,setConfig,onStart,onBack}){
           </Panel>
         )}
 
-        {selectedMode==="daily"&&(
+        {selectedMode==="daily"&&(()=>{
+          const played=getDailyResult();
+          return (
           <Panel>
             <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20}}>
               <button onClick={()=>setSelectedMode(null)} style={{background:"none",border:"none",color:T.muted,fontSize:16,cursor:"pointer",fontFamily:T.font,fontWeight:900}}>← BACK</button>
@@ -646,9 +680,21 @@ function ModeSelect({character,setCharacter,config,setConfig,onStart,onBack}){
               <div style={{fontSize:28,fontWeight:900,color:T.amber,letterSpacing:4,marginTop:8,WebkitTextStroke:`1px ${T.ink}`}}>{getTodaySeed()}</div>
               <div style={{fontSize:12,color:T.muted,marginTop:6}}>{new Date().toDateString()}</div>
             </div>
-            <div style={{textAlign:"center"}}><Btn label="⚡  START DAILY CHALLENGE" onClick={launchDaily} color={T.amber} size="lg"/></div>
+            {played ? (
+              <div style={{textAlign:"center"}}>
+                <div style={{padding:"14px 18px",background:`${T.amber}22`,border:`2px solid ${T.amber}`,borderRadius:8,marginBottom:18}}>
+                  <div style={{fontSize:11,color:T.amber,letterSpacing:3,fontWeight:900,marginBottom:4}}>SHIFT COMPLETE</div>
+                  <div style={{fontSize:40,fontWeight:900,color:T.amber,WebkitTextStroke:`2px ${T.ink}`}}>{played.score}</div>
+                  <div style={{fontSize:11,color:T.muted,letterSpacing:2,marginTop:2}}>TODAY'S SCORE · COME BACK TOMORROW</div>
+                </div>
+                <Btn label="⚡ VIEW LEADERBOARD" onClick={onViewDailyLeaderboard} color={T.amber} size="lg"/>
+              </div>
+            ) : (
+              <div style={{textAlign:"center"}}><Btn label="⚡  START DAILY CHALLENGE" onClick={launchDaily} color={T.amber} size="lg"/></div>
+            )}
           </Panel>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
@@ -1380,6 +1426,137 @@ function Summary({result,onPlay,onMenu}){
         <div style={{display:"flex",gap:12,justifyContent:"center"}}>
           <Btn label="▶ PLAY AGAIN" onClick={onPlay} color={T.amber}/>
           <Btn label="MAIN MENU"    onClick={onMenu} color={T.cream} style={{color:T.ink}}/>
+        </div>
+      </div>
+      <style>{`@keyframes bossFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}`}</style>
+    </div>
+  );
+}
+
+// ─── DAILY LEADERBOARD ────────────────────────────────────────────────────────
+function DailyLeaderboard({character,onMenu}){
+  const date=getTodaySeed();
+  const playerId=getPlayerId();
+  const localResult=getDailyResult();
+  const [entries,setEntries]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [lastRefresh,setLastRefresh]=useState(null);
+
+  const loadBoard=useCallback(async()=>{
+    const rows=await getLeaderboard(date);
+    setEntries(rows);
+    setLastRefresh(new Date());
+    setLoading(false);
+  },[date]);
+
+  useEffect(()=>{
+    const run=async()=>{
+      if(localResult){
+        const char=localResult.character||character;
+        await submitScore(date,playerId,localResult.score,char);
+      }
+      await loadBoard();
+    };
+    run();
+  },[]);
+
+  useEffect(()=>{
+    const t=setInterval(loadBoard,30000);
+    return()=>clearInterval(t);
+  },[loadBoard]);
+
+  const myRank=entries.findIndex(e=>e.player_id===playerId)+1;
+  const hasBackend=!!sb;
+  const myScore=localResult?.score??0;
+
+  const rankColor=r=>r===1?"#E8C020":r===2?"#C8C8C8":r===3?"#C87A20":T.panel;
+  const rankLabel=r=>r===1?"🥇":r===2?"🥈":r===3?"🥉":`#${r}`;
+
+  return (
+    <div style={{minHeight:"100vh",background:T.bg,fontFamily:T.font,color:T.text,padding:"24px 24px 48px",
+      display:"flex",flexDirection:"column",alignItems:"center"}}>
+      <WoodBg/>
+      <div style={{position:"relative",zIndex:2,width:"100%",maxWidth:620}}>
+
+        {/* Header */}
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{fontSize:11,letterSpacing:6,color:T.muted,marginBottom:6,fontFamily:"Georgia,serif"}}>DAILY CHALLENGE</div>
+          <div style={{fontSize:13,color:T.amber,letterSpacing:4,fontWeight:900,marginBottom:16}}>⚡ {new Date().toDateString().toUpperCase()}</div>
+          {myScore>0&&(
+            <>
+              <div style={{fontSize:72,fontWeight:900,color:T.amber,WebkitTextStroke:`4px ${T.ink}`,lineHeight:1}}>{myScore}</div>
+              <div style={{fontSize:11,color:T.muted,letterSpacing:3,marginTop:4}}>YOUR SCORE</div>
+            </>
+          )}
+        </div>
+
+        {/* Rank badge */}
+        {myRank>0&&(
+          <Panel style={{marginBottom:14,textAlign:"center"}}>
+            <div style={{fontSize:11,letterSpacing:4,color:T.muted,marginBottom:8}}>YOUR WORLDWIDE RANK</div>
+            <div style={{fontSize:64,fontWeight:900,color:T.amber,WebkitTextStroke:`3px ${T.ink}`,lineHeight:1}}>{rankLabel(myRank)}</div>
+            <div style={{fontSize:12,color:T.muted,marginTop:6}}>out of {entries.length} player{entries.length!==1?"s":""} today</div>
+            {lastRefresh&&<div style={{fontSize:9,color:T.dim,letterSpacing:2,marginTop:8}}>UPDATES AUTOMATICALLY · LAST: {lastRefresh.toLocaleTimeString()}</div>}
+          </Panel>
+        )}
+
+        {/* Leaderboard table */}
+        <Panel style={{marginBottom:20}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+            <Label size="md">TODAY'S LEADERBOARD</Label>
+            {loading&&<div style={{fontSize:9,color:T.muted,letterSpacing:2}}>LOADING...</div>}
+          </div>
+
+          {!hasBackend&&(
+            <div style={{fontSize:13,color:T.muted,fontFamily:"Georgia,serif",textAlign:"center",padding:"24px 0",lineHeight:2}}>
+              Leaderboard requires Supabase setup.<br/>
+              <span style={{fontSize:11}}>Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to Vercel environment variables.</span>
+            </div>
+          )}
+
+          {hasBackend&&!loading&&entries.length===0&&(
+            <div style={{fontSize:13,color:T.muted,fontFamily:"Georgia,serif",textAlign:"center",padding:"24px 0"}}>
+              No scores yet today — you might be first!
+            </div>
+          )}
+
+          {hasBackend&&entries.length>0&&(
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {entries.map((e,i)=>{
+                const isMe=e.player_id===playerId;
+                const rank=i+1;
+                return (
+                  <div key={e.player_id} style={{
+                    display:"flex",alignItems:"center",gap:12,
+                    padding:"10px 14px",
+                    background:isMe?`${T.amber}22`:"#0E0804",
+                    border:`2px solid ${isMe?T.amber:T.border}`,
+                    borderRadius:7,
+                    boxShadow:isMe?`3px 3px 0 ${T.ink}44`:"none",
+                    transition:"all 0.2s",
+                  }}>
+                    <div style={{
+                      width:36,height:36,flexShrink:0,
+                      background:rankColor(rank),
+                      border:`2px solid ${T.ink}`,borderRadius:6,
+                      boxShadow:`2px 2px 0 ${T.ink}`,
+                      display:"flex",alignItems:"center",justifyContent:"center",
+                      fontSize:rank<=3?18:13,fontWeight:900,color:T.ink,
+                    }}>{rankLabel(rank)}</div>
+                    <div style={{fontSize:24,lineHeight:1}}>{e.character||"🤖"}</div>
+                    <div style={{flex:1,fontSize:20,fontWeight:900,color:isMe?T.amber:T.text,
+                      WebkitTextStroke:isMe?`0.5px ${T.ink}`:"none"}}>{e.score}</div>
+                    {isMe&&<div style={{fontSize:10,color:T.amber,fontWeight:900,letterSpacing:2,
+                      background:`${T.amber}33`,border:`1px solid ${T.amber}`,borderRadius:4,padding:"2px 8px"}}>YOU</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Panel>
+
+        <div style={{textAlign:"center"}}>
+          <Btn label="← BACK TO MENU" onClick={onMenu} color={T.cream} style={{color:T.ink}}/>
         </div>
       </div>
       <style>{`@keyframes bossFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}`}</style>
